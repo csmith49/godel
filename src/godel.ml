@@ -16,5 +16,5 @@ let _ =
         print_endline "\n==> STATS ==>";
         Printf.printf "TIME: %f\n" (Sys.time() -. start_time);
         Printf.printf "NUM_PROGS: %i\n" !program_count;
-        System.print_stats !Config.system;
+        (* System.print_stats !Config.system; *)
     end

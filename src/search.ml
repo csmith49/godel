@@ -10,16 +10,18 @@ let hvalue (x, _) = match !Config.expansion_metric with
     | _ -> failwith "Unrecognized heuristic!"
 
 let normal (p : Program.t) (s : System.t) : bool =
-    if !Config.rule_stats then
+    c_normal p s
+    (* if !Config.rule_stats then
         System.a_normal p s
     else
-        System.normal p s
+        System.normal p s *)
 
 let root_normal (p : Program.t) (s : System.t) : bool =
-    if !Config.rule_stats then
+    c_root_normal p s
+    (* if !Config.rule_stats then
         System.a_root_normal p s
     else
-        System.root_normal p s
+        System.root_normal p s *)
 
 (* used to short-circuit computation *)
 exception Success of Vector.t
