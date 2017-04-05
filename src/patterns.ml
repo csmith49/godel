@@ -459,13 +459,24 @@ let rec c_greater_than (l : Program.t) (r : Program.t) (s : System.t) : bool =
                     | _ -> report false
             else report false
 
-let c_reduces_wrt_kbo (p : Program.t) (r: Rule.t) (s : System.t) : bool =
-    true
+let c_reduces_wrt_kbo (p : Program.t) (lhs : Pattern.t) (rhs : Pattern.t) (s : System.t) : bool =
+    match (Pattern.match_with_exp lhs p) with
+        | Some sub -> let left, right = (Pattern.apply_sub lhs sub), (Pattern.apply_sub rhs sub) in
+            c_greater_than left right s
+        | None -> false
 
 let c_applicable (p : Program.t) (r : Rule.t) (s : System.t) : bool =
-    true
+    match r with
+        | Rule (lhs, _) ->
+            begin match (Pattern.match_with_exp lhs p) with
+                | Some _ -> true
+                | None -> false
+            end
+        | Equation (lhs, rhs) ->
+            if (c_reduces_wrt_kbo p lhs rhs s) then true
+            else (c_reduces_wrt_kbo p rhs lhs s)
 
-let rec c_normal (prog : program) (s : System.t) : bool =
+let rec c_normal (prog : Program.t) (s : System.t) : bool =
     match (Cache.find s.cache.normal prog) with
         | Some ans -> ans
         | None -> if is_var prog then true
@@ -476,3 +487,7 @@ let rec c_normal (prog : program) (s : System.t) : bool =
                         | Node (_, args) ->
                             report (List.for_all (fun a -> c_normal a s) args)
                         | _ -> report true
+
+let c_root_normal (prog : Program.t) (s : System.t) : bool =
+    let f = fun r -> c_applicable prog r s in
+        not (List.exists f s.rules)
