@@ -105,17 +105,17 @@ let solveTD task =
     in
     let fresh_hole _ =
         hole_count := !hole_count + 1;
-        (Leaf ("HOLE" ^ (string_of_int !hole_count)))
+        (leaf ("HOLE" ^ (string_of_int !hole_count)))
     in
     (* functions for expanding programs *)
     let get_all_comps t = List.filter (fun x -> x.r_codomain = t) rules in
     let unexpanded_comp c = match c.r_domain with
-        | [] -> Leaf c.r_name
-        | xs -> Node (c.r_name, List.map (fun x -> fresh_hole x) xs)
+        | [] -> leaf c.r_name
+        | xs -> node (c.r_name, List.map (fun x -> fresh_hole x) xs)
     in
     let rec fill_hole prog hole filling = match prog with
-        | Node (f, args) -> Node (f, List.map (fun a -> fill_hole a hole filling) args)
-        | Leaf c -> if c = hole then filling else (Leaf c)
+        | Node (f, args) -> node (f, List.map (fun a -> fill_hole a hole filling) args)
+        | Leaf c -> if c = hole then filling else (leaf c)
     in
     let get_type c = (List.find (fun x -> c = x.r_name) rules).r_domain in
     let get_holes prog =
@@ -200,7 +200,7 @@ let solveBU task =
             else
                 VError
         in if List.exists (fun x -> x.name = c.name) task.rec_components then
-            ( (Node (c.name, List.map fst args)), Array.init vector_size f)
+            ( (node (c.name, List.map fst args)), Array.init vector_size f)
         else
             apply_component c args
     in
@@ -274,7 +274,7 @@ let solveBU task =
     List.iter
         (fun c -> if (List.length c.domain) = 0
             then let v =
-                (Leaf c.name, Array.make vector_size (c.apply [])) in
+                (leaf c.name, Array.make vector_size (c.apply [])) in
                 let array = match c.codomain with
                     | TList -> list_array
                     | TBool -> bool_array

@@ -105,16 +105,20 @@ module Program = struct
   type t = program
   let compare = Pervasives.compare
   let equal x y = match x, y with
-    | Leaf n, Leaf m -> n = m
-    | Node (f, arfs), Node (g, args) -> f = g && arfs = args
+    | Leaf n, Leaf m -> n == m
+    | Node (f, arfs), Node (g, args) -> f == g && arfs == args
     | _ -> false
   let hash = Hashtbl.hash
 end
 
-let table : (program, program) Hashtbl.t  = (Hashtbl.create 999999)
+module H = Hashtbl.Make(Program)
+let table = H.create 999999
 let hashcons x =
-    try Hashtbl.find table x
-    with Not_found -> Hashtbl.add table x x; x
+    try H.find table x
+    with Not_found -> H.add table x x; x
+
+let leaf (n : string) : program = hashcons (Leaf n)
+let node ((f, arfs) : string * program list) : program = hashcons (Node (f, arfs))
 
 (* Subprogram with value vector *)
 module Vector = struct
