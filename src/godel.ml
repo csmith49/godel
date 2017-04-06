@@ -5,6 +5,7 @@ open Tasks
 open Config
 open Eval
 open Search
+open Kbo
 
 let _ =
     let start_time = Sys.time() in
