@@ -16,10 +16,14 @@ let program_count = ref 0;;
 let stats = ref false;;
 let rule_stats = ref false;;
 let subset = ref 0;;
+let dtree = ref Normal.DTree.empty;;
+let normalize_time = ref 0.0;;
 
 let process_rules filename = begin
-    system := System.merge (System.of_file filename) !system;
+    print_string ("loading file: " ^ filename ^ "...");
+    dtree := Normal.DTree.merge (Normal.load_file filename !kbo) !dtree;
     reduce := true;
+    print_endline "done.";
 end;;
 
 let dense_rules unused = begin
@@ -33,9 +37,7 @@ let dense_rules unused = begin
         "./rules/string.scm";
         "./rules/list.scm"
     ] in
-    let f s = system := System.merge s !system in
-    List.iter f (List.map System.of_file files);
-    reduce := true;
+    List.iter process_rules files;
 end;;
 
 (* arguments for converting cmd line args into vars above *)

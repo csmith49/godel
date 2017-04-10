@@ -9,20 +9,17 @@ let hvalue (x, _) = match !Config.expansion_metric with
     | "size" -> program_size x
     | _ -> failwith "Unrecognized heuristic!"
 
-let normal (p : Program.t) (s : System.t) : bool =
-    c_normal p s
-    (* if !Config.rule_stats then
-        System.a_normal p s
-    else
-        System.normal p s *)
+(* TODO : make this recurse nicely *)
+let normal (p : Program.t) : bool =
+    not (Normal.DTree.match_program p !Config.dtree)
 
-let root_normal (p : Program.t) (s : System.t) : bool =
-    c_root_normal p s
-    (* if !Config.rule_stats then
-        System.a_root_normal p s
-    else
-        System.root_normal p s *)
-
+let root_normal (p : Program.t) : bool =
+    let t = Sys.time () in
+    let ans = not (Normal.DTree.match_program p !Config.dtree) in
+    begin
+        Config.normalize_time := !Config.normalize_time +. (Sys.time ()) -. t;
+        ans
+    end
 (* used to short-circuit computation *)
 exception Success of Vector.t
 
@@ -151,7 +148,7 @@ let solveTD task =
     let check_program p =
         if (matches_goal p) && (not !Config.enumerate)
             then raise (Success (p, [||]));
-        if (!Config.reduce) && not (normal p !Config.system) then
+        if (!Config.reduce) && not (normal p) then
             begin
                 if !Config.noisy then
                     print_endline ("NORMALIZED ---> " ^ (program_string p));
@@ -209,7 +206,7 @@ let solveBU task =
     let check_vector ?(init=false) v =
         if !symmetry_reduction && (not init) && VMSet.seen (snd v) (!seen)
         then false
-        else if !Config.reduce && (not (root_normal (fst v) !Config.system))
+        else if !Config.reduce && (not (root_normal (fst v)))
         then false
         else begin
             if !noisy then begin

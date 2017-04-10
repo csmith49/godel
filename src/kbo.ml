@@ -1,14 +1,35 @@
 open Core
 
 (* we need to differentiate constant leaves and variables *)
-(* TODO *)
-let is_variable (s : string) : bool = true
+let is_variable (s : string) : bool =
+    try (String.sub s 0 4) = "HOLE"
+    with Invalid_argument _ -> false
 
 (* effectively parameterizes kbo *)
-(* TODO *)
-let weight (s : string) : int = 1
+(* we hold the strict values in ref maps *)
+module ValMap = Map.Make(String)
+type vmap = int ValMap.t
+let weights : vmap ref = ref ValMap.empty
+let precs : vmap ref = ref ValMap.empty
+(* and update them as we go *)
+let add_weight (s : string) (w : int) : unit =
+    weights := ValMap.add s w !weights
+let add_prec (s : string) (p : int) : unit =
+    precs := ValMap.add s p !precs
+(* so that we can pull the information when we need *)
+let get_weight (s : string) : int =
+    try ValMap.find s !weights
+    with Not_found -> 2
+let get_prec (s : string) : int =
+    try ValMap.find s !precs
+    with Not_found -> 0
+(* and turn into our easy access *)
+let weight (s : string) : int = get_weight s
 let mu : int = 0
-let prec (s : string) (t : string) : bool = false
+let prec (s : string) (t : string) : bool =
+    let sp = get_prec s in
+    let tp = get_prec t in
+        sp > tp
 
 (* in order to maintain a linear traversal, must keep track of variable balances *)
 module VarBal = Map.Make(String)
@@ -133,3 +154,7 @@ let kbo (s : program) (t : program) : ordering =
     let vb = VarBal.empty in
     let _, _, res = tkbo vb 0 s t in
         res
+
+(* or the thing we really care about *)
+let gt (s : program) (t : program) : bool =
+    (kbo s t) = GT

@@ -16,6 +16,9 @@ let _ =
     if !Config.stats then begin
         print_endline "\n==> STATS ==>";
         Printf.printf "TIME: %f\n" (Sys.time() -. start_time);
+        Printf.printf "NORM TIME: %f\n" (!Config.normalize_time);
         Printf.printf "NUM_PROGS: %i\n" !program_count;
+        (* print_endline "==============>";
+        print_endline (Normal.DTree.to_string !Config.dtree); *)
         (* System.print_stats !Config.system; *)
     end
