@@ -1,5 +1,6 @@
 open Sexplib
 open Core
+open Cache
 
 (* UTILITY FUNCTIONS *)
 
@@ -331,6 +332,7 @@ type system = {
     comparison : KBO.t;
     rules : rule list;
     mutable stats : stat StatsMap.t;
+    cache : Cache.t
 }
 
 module System = struct
@@ -341,12 +343,14 @@ module System = struct
         comparison = KBO.empty;
         rules = [];
         stats = StatsMap.empty;
+        cache = Cache.empty;
     }
     let merge (s1 : t) (s2 : t) : t = let f k l r = Some (max l r) in
         {
             comparison = KBO.merge s1.comparison s2.comparison;
             rules = s1.rules @ s2.rules;
             stats = StatsMap.union f s1.stats s2.stats;
+            cache = Cache.merge s1.cache s2.cache;
         }
 
     let random_subset (s : t) (k : int) : t = {
@@ -378,6 +382,7 @@ module System = struct
             };
             rules = !r;
             stats = statsmap_of_rule_list !r;
+            cache = Cache.empty;
         }
 
     (* print some stuff *)
@@ -421,3 +426,68 @@ module System = struct
         let f = (fun r -> check prog r s) in
             not (list_or (List.map f s.rules))
 end
+
+(* cached normality checks *)
+let rec c_weight (p : Program.t) (s : System.t) : int =
+    match (Cache.find s.cache.weight p) with
+        | Some ans -> ans
+        | None -> let report ans = Cache.add s.cache.weight p ans in match p with
+            | Leaf c -> if (is_var p) then report 1 else report (KBO.symbol_weight c s.comparison)
+            | Node (f, args) ->
+                let r = fun k -> c_weight k s in
+                let k_weights = List.map r args in
+                    report (KBO.symbol_weight f s.comparison) + (List.fold_left (+) 0 k_weights)
+
+let rec c_greater_than (l : Program.t) (r : Program.t) (s : System.t) : bool =
+    match (Cache.find s.cache.kbo (l, r)) with
+        | Some ans -> ans
+        | None ->
+            let report ans = Cache.add s.cache.kbo (l, r) ans in
+            let w_l, w_r = c_weight l s, c_weight r s in
+            let p_l, p_r = KBO.prec l s.comparison, KBO.prec r s.comparison in
+            let x_l, x_r = num_holes l, num_holes r in
+            (* case 1 *)
+            if (w_l > w_r) && (Counter.for_all (geq_count x_l) x_r) then report true
+            (* case 2 *)
+            else if (w_l = w_r) && (Counter.for_all (eq_count x_l) x_r) then
+                (* case 2 a *)
+                if (is_var r) && (is_linear l) then report true
+                (* case 2 b *)
+                else if p_l > p_r then report true
+                else match l, r with
+                    | Node (f, arfs), Node (g, args) -> report (lex_lift (fun a b -> c_greater_than a b s) arfs args)
+                    | _ -> report false
+            else report false
+
+let c_reduces_wrt_kbo (p : Program.t) (lhs : Pattern.t) (rhs : Pattern.t) (s : System.t) : bool =
+    match (Pattern.match_with_exp lhs p) with
+        | Some sub -> let left, right = (Pattern.apply_sub lhs sub), (Pattern.apply_sub rhs sub) in
+            c_greater_than left right s
+        | None -> false
+
+let c_applicable (p : Program.t) (r : Rule.t) (s : System.t) : bool =
+    match r with
+        | Rule (lhs, _) ->
+            begin match (Pattern.match_with_exp lhs p) with
+                | Some _ -> true
+                | None -> false
+            end
+        | Equation (lhs, rhs) ->
+            if (c_reduces_wrt_kbo p lhs rhs s) then true
+            else (c_reduces_wrt_kbo p rhs lhs s)
+
+let rec c_normal (prog : Program.t) (s : System.t) : bool =
+    match (Cache.find s.cache.normal prog) with
+        | Some ans -> ans
+        | None -> if is_var prog then true
+            else let report ans = Cache.add s.cache.normal prog ans in
+                let f r = c_applicable prog r s in
+                    if List.exists f s.rules then report false
+                    else match prog with
+                        | Node (_, args) ->
+                            report (List.for_all (fun a -> c_normal a s) args)
+                        | _ -> report true
+
+let c_root_normal (prog : Program.t) (s : System.t) : bool =
+    let f = fun r -> c_applicable prog r s in
+        not (List.exists f s.rules)

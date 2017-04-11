@@ -15,7 +15,7 @@ let apply_component (c : component) (args : Vector.t list) =
   let result =
     Array.mapi (fun i _ -> c.apply (select i values)) (List.hd values)
   in
-    ( hashcons (Node (c.name, progs)), result)
+    ( (Node (c.name, progs)), result)
 
 (* conditionals to use when we dont' have a goal graph *)
 let cond_list =
