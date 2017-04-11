@@ -1,15 +1,18 @@
 GODEL = ../../godel.native
 BENCHMARK = eq_str_upper_len
-RULES = base int_compare string
+RULES = int_compare base string
 RULEFILES = $(foreach r, $(RULES), ../../rules/$(r).scm)
 
 .phony: all
 all: consistency.out
 
-data/dtree.out:
+data:
+	mkdir data
+
+data/dtree.out: data
 	$(GODEL) -target $(BENCHMARK) $(foreach r,$(RULEFILES),-rule $(r)) -dtree -noisy | grep -i "NORMALIZED" | sort > $@
 
-data/system.out:
+data/system.out: data
 	$(GODEL) -target $(BENCHMARK) $(foreach r, $(RULEFILES),-rule $(r)) -noisy | grep -i "NORMALIZED" | sort > $@
 
 consistency.out: data/dtree.out data/system.out
@@ -19,3 +22,4 @@ consistency.out: data/dtree.out data/system.out
 .phony: clean
 clean:
 	rm -f consistency.out
+	rm -rf data/*

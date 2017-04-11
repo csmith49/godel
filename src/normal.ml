@@ -73,6 +73,12 @@ module Pattern = struct
         | Core.Leaf c, PConst s -> if s = c then Some StringMap.empty else None
         | Core.Leaf c, PFunc (f, []) -> if f = c then Some StringMap.empty else None
         | _ -> None
+    (* and sometimes we convert patterns to other patterns by being careful *)
+    type p_sub = t StringMap.t
+    let rec apply_p_sub (p : t) (s : p_sub) : t = match p with
+        | PFunc (f, ss) -> PFunc (f, List.map  (fun a -> apply_p_sub a s) ss)
+        | PConst c -> PConst c
+        | PVar x -> try StringMap.find x s with Not_found -> PVar x
 end
 
 (* which we convert to flat patterns *)
@@ -103,6 +109,15 @@ module FlatPattern = struct
                 let i = (StringMap.cardinal b) + 1 in
                 let x_p = NVar ("*_" ^ (string_of_int i)) in
                     [x_p], StringMap.add x x_p b
+    let binding_to_p_sub (b : binding) : Pattern.p_sub =
+        let f = fun n -> match n with
+            | NVar x -> Pattern.PVar x
+            | _ -> failwith "nope" in
+        StringMap.map f b
+    let convert_pair (lhs : Pattern.t) (rhs : Pattern.t) : t * Pattern.t * Pattern.t =
+        let fp, s = flatten lhs StringMap.empty in
+        let ps = binding_to_p_sub s in
+        fp, (Pattern.apply_p_sub lhs ps), (Pattern.apply_p_sub rhs ps)
 end
 
 (* utilities for loading files *)
@@ -156,15 +171,19 @@ module DTree = struct
         (* shouldn't compare internals with terminals, due to arity conditions *)
         | _, _ -> failwith "can't merge tries of different types"
     (* of course, we usually make from rules instead *)
-    let of_rule (lhs : Pattern.t) (rhs : Pattern.t) (ordered : bool) : t = match ordered with
-        | false ->
-            of_flatpattern (FlatPattern.of_pattern lhs) true_check
-        | true ->
-            let l_check = fun s -> Kbo.gt (Pattern.apply_sub lhs s) (Pattern.apply_sub rhs s) in
-            let l = of_flatpattern (FlatPattern.of_pattern lhs) l_check in
-            let r_check = fun s -> Kbo.gt (Pattern.apply_sub rhs s) (Pattern.apply_sub lhs s) in
-            let r = of_flatpattern (FlatPattern.of_pattern rhs) r_check in
-                merge l r
+    let of_rule (lhs : Pattern.t) (rhs : Pattern.t) (ordered : bool) : t =
+        let f =
+            (fun l r -> let fp, _, _ = FlatPattern.convert_pair l r in
+                of_flatpattern fp true_check)
+        in
+        let g =
+            (fun l r -> let fp, lhs, rhs = FlatPattern.convert_pair l r in
+                let check = fun s -> Kbo.gt (Pattern.apply_sub lhs s) (Pattern.apply_sub rhs s) in
+                    of_flatpattern fp check)
+        in
+        match ordered with
+            | false -> f lhs rhs
+            | true -> merge (g lhs rhs) (g rhs lhs)
     (* checks are a little convoluted, because we have to jump laterally across the prog when we match *)
     (* so we convert programs into preorder programs *)
     module Preorder = struct
