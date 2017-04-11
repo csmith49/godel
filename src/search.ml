@@ -32,10 +32,25 @@ let root_normal : (Program.t -> bool) =
     let rn = if !Config.use_dtree then dtree_rn else system_rn in
     let rnp = if !Config.stats then stats_wrapper rn else rn in
     if !Config.noisy then noisy_wrapper rnp else rnp
-
-(* TODO : make this recurse nicely *)
-let normal (p : Program.t) : bool =
-    not (Normal.DTree.match_program p !Config.dtree)
+(* and then repeat with normal *)
+let rec dtree_n (p : Program.t) : bool = match p with
+    | Leaf x -> not (Normal.DTree.match_program p !Config.dtree)
+    | Node (f, ss) ->
+        if not (Normal.DTree.match_program p !Config.dtree) then
+            true
+        else
+            List.exists dtree_n ss
+let rec system_n (p : Program.t) : bool = match p with
+    | Leaf x -> not (Normal.System.match_program p !Config.system)
+    | Node (f, ss) ->
+        if not (Normal.System.match_program p !Config.system) then
+            true
+        else
+            List.exists system_n ss
+let normal : (Program.t -> bool) =
+    let n = if !Config.use_dtree then dtree_n else system_n in
+    let np = if !Config.stats then stats_wrapper n else n in
+    if !Config.noisy then noisy_wrapper np else np
 
 (* used to short-circuit computation *)
 exception Success of Vector.t
