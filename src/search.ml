@@ -9,21 +9,34 @@ let hvalue (x, _) = match !Config.expansion_metric with
     | "size" -> program_size x
     | _ -> failwith "Unrecognized heuristic!"
 
+(* SECTION FOR NORMALIZATION STUFF *)
+let stats_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
+    fun p ->
+        let t = Sys.time () in
+        let ans = f p in begin
+            Config.normalize_time := !Config.normalize_time +. (Sys.time ()) -. t;
+            ans
+        end
+let noisy_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
+    fun p ->
+        let ans = f p in
+            if ans then print_endline ("---> NORMALIZED: " ^ program_string p);
+            ans
+(* the different root normals we can use *)
+let dtree_rn (p : Program.t) : bool =
+    not (Normal.DTree.match_program p !Config.dtree)
+let system_rn (p : Program.t) : bool =
+    not (Normal.System.match_program p !Config.system)
+(* which we select early based on config *)
+let root_normal : (Program.t -> bool) =
+    let rn = if !Config.use_dtree then dtree_rn else system_rn in
+    let rnp = if !Config.stats then stats_wrapper rn else rn in
+    if !Config.noisy then noisy_wrapper rnp else rnp
+
 (* TODO : make this recurse nicely *)
 let normal (p : Program.t) : bool =
     not (Normal.DTree.match_program p !Config.dtree)
 
-let root_normal (p : Program.t) : bool =
-    let t = Sys.time () in
-    let ans =
-        if !Config.use_dtree then
-            not (Normal.DTree.match_program p !Config.dtree)
-        else
-            not (Normal.System.match_program p !Config.system)
-    in begin
-        Config.normalize_time := !Config.normalize_time +. (Sys.time ()) -. t;
-        ans
-    end
 (* used to short-circuit computation *)
 exception Success of Vector.t
 
