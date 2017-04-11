@@ -26,8 +26,6 @@ let process_rules filename = begin
     print_string ("loading file: " ^ filename ^ "...");
     (* register kbo data *)
     Kbo.load_file filename;
-    (* now add to the dtree *)
-    dtree := Normal.DTree.merge (Normal.DTree.of_file filename !kbo) !dtree;
     (* and to the system *)
     system := Normal.System.merge (Normal.System.of_file filename !kbo) !system;
     (* and set it so we actually reduce *)
@@ -67,11 +65,21 @@ let arg_list = [
 
 let anon_fun = (fun s -> raise (Arg.Bad (s ^ " is not a recognized argument"))) in
 let usage_msg = "Let's synthesize some stuff!" in
+    (* initialize our randomizer *)
+    Random.self_init ();
+    (* update the commands *)
     Arg.parse (Arg.align arg_list) anon_fun usage_msg;
-    List.iter process_rules !to_process;
-    if !visualize_dtree then
-        print_endline (Normal.DTree.to_string !dtree)
-    else ();
-    (* Random.self_init ();
+    (* if there are rules to process, do so *)
+    if (List.length !to_process) != 0 then begin
+        List.iter process_rules !to_process;
+        reduce := true;
+    end;
+    (* if we need to get rid of random rules and whatnot, do so *)
     if !subset != 0 then
-        system := System.random_subset !system !subset; *)
+        system := Normal.System.random_subset !system !subset;
+    (* if we're using the dtree, make it from the system now *)
+    if !use_dtree then
+        dtree := Normal.System.to_dtree !system;
+    (* aaaaaand maybe print the tree *)
+    if !visualize_dtree then
+        print_endline (Normal.DTree.to_string !dtree);

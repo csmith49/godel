@@ -16,6 +16,23 @@ let liftOM f a b = match a, b with
     | Some a, Some b -> f a b
     | _ -> None
 
+(* and utility for random subsets (taken from 99 ocaml problems) *)
+let rec random_selection list n =
+    let rec extract acc n = function
+      | [] -> raise Not_found
+      | h :: t -> if n = 0 then (h, acc @ t) else extract (h::acc) (n-1) t
+    in
+    let extract_rand list len =
+      extract [] (Random.int len) list
+    in
+    let rec aux n acc list len =
+      if n = 0 then acc else
+        let picked, rest = extract_rand list len in
+        aux (n-1) (picked :: acc) rest (len-1)
+    in
+    let len = List.length list in
+    aux (min n len) [] list len
+
 (* strangely (?) we define subs before patterns *)
 module StringMap = Map.Make(String)
 type substitution = Core.program StringMap.t
@@ -310,4 +327,19 @@ module System = struct
             | None -> false
         in
             (List.exists f s.rules) || (List.exists g s.eqs)
+    (* to make things easier, we convert our system to a dtree  *)
+    let to_dtree (s : t) : DTree.t =
+        let dtree = ref DTree.empty in
+        let m = fun dt -> dtree := DTree.merge !dtree dt in
+        let r_trees = List.map (fun (lhs, rhs) -> DTree.of_rule lhs rhs false) s.rules in
+        let e_trees = List.map (fun (lhs, rhs) -> DTree.of_rule lhs rhs true) s.eqs in
+            List.iter m (r_trees @ e_trees); !dtree
+    let random_subset (s : t) (size : int) : t =
+        let rs = List.map (fun r -> (r, false)) s.rules in
+        let es = List.map (fun r -> (r, true)) s.eqs in
+        let subset = random_selection (rs @ es) size in
+        {
+            rules = List.map fst (List.filter (fun (_, b) -> not b) subset);
+            eqs = List.map fst (List.filter (fun (_, b) -> b) subset);
+        }
 end
