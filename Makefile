@@ -1,5 +1,5 @@
 # BUILD FLAGS
-OCB_FLAGS = -r -use-ocamlfind -pkgs 'sexplib' -I src -tag 'debug'
+OCB_FLAGS = -r -use-ocamlfind -pkgs 'sexplib' -I src -tag 'profile'
 OCB = ocamlbuild $(OCB_FLAGS)
 
 # RULES

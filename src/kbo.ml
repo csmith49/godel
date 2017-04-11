@@ -158,3 +158,23 @@ let kbo (s : program) (t : program) : ordering =
 (* or the thing we really care about *)
 let gt (s : program) (t : program) : bool =
     (kbo s t) = GT
+
+(* besides maybe loading from file *)
+let vlist_of_sexp xs =
+    let paired = function
+        | Sexplib.Sexp.List ((Sexplib.Sexp.Atom n) :: (Sexplib.Sexp.Atom v) :: []) ->
+            (n, (int_of_string v))
+        | _ -> failwith "not a valid pair"
+    in List.map paired xs
+
+let load_file (filename : string) : unit =
+    let parse_command s = match s with
+        | Sexplib.Sexp.List ((Sexplib.Sexp.Atom "weights") :: xs) ->
+            List.iter (fun (k, v) -> add_weight k v) (vlist_of_sexp xs)
+        | Sexplib.Sexp.List ((Sexplib.Sexp.Atom "precs") :: xs) ->
+            List.iter (fun (k, v) -> add_prec k v) (vlist_of_sexp xs)
+        | _ -> ()
+    in begin match (Sexplib.Sexp.load_sexp filename) with
+        | Sexplib.Sexp.List xs -> List.iter parse_command xs
+        | _ -> failwith "not a valid file"
+    end;

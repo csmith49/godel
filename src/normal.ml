@@ -11,6 +11,10 @@ let rec repeat_string (s : string) (k : int) : string =
     else
         s ^ (repeat_string s (k - 1))
 
+(* and some utility functions for option types *)
+let liftOM f a b = match a, b with
+    | Some a, Some b -> f a b
+    | _ -> None
 
 (* strangely (?) we define subs before patterns *)
 module StringMap = Map.Make(String)
@@ -21,6 +25,15 @@ let can_add (k : string) (v : Core.program) (s : substitution) : bool =
     try
         (StringMap.find k s) = v
     with Not_found -> true
+(* and combine subs carefully *)
+let merge_sub (s : substitution) (t : substitution) : substitution option =
+    let f sub (k, v) = match sub with
+        | Some sub ->
+            if (StringMap.mem k sub) && (StringMap.find k sub) <> v then
+                None
+            else Some (StringMap.add k v sub)
+        | None -> None
+    in List.fold_left f (Some s) (StringMap.bindings t)
 
 (* which operate over patterns *)
 module Pattern = struct
@@ -44,9 +57,22 @@ module Pattern = struct
     let of_string (s : string) : t = of_sexp (Sexp.of_string s)
     (* actually converting patterns to programs using subs *)
     let rec apply_sub (p : t) (s : substitution) : Core.program = match p with
-        | PFunc (f, ss) -> Core.node (f, List.map (fun a -> apply_sub a s) ss)
-        | PConst c -> Core.leaf c
-        | PVar x -> try StringMap.find x s with Not_found -> Core.leaf x
+        | PFunc (f, ss) -> Core.Node (f, List.map (fun a -> apply_sub a s) ss)
+        | PConst c -> Core.Leaf c
+        | PVar x -> try StringMap.find x s with Not_found -> Core.Leaf x
+    (* and maybe we care about matching programs *)
+    let rec match_program (p : Core.program) (t : t) : substitution option  = match p, t with
+        | t, PVar x -> Some (StringMap.singleton x t)
+        | Core.Node (f, arfs), PFunc (g, args) ->
+            if g = f then
+                let subproblems = List.map2 match_program arfs args in
+                let f = liftOM merge_sub in
+                let acc = Some StringMap.empty in
+                    List.fold_left f acc subproblems
+            else None
+        | Core.Leaf c, PConst s -> if s = c then Some StringMap.empty else None
+        | Core.Leaf c, PFunc (f, []) -> if f = c then Some StringMap.empty else None
+        | _ -> None
 end
 
 (* which we convert to flat patterns *)
@@ -78,6 +104,18 @@ module FlatPattern = struct
                 let x_p = NVar ("*_" ^ (string_of_int i)) in
                     [x_p], StringMap.add x x_p b
 end
+
+(* utilities for loading files *)
+let vlist_of_sexp xs =
+    let paired = function
+        | Sexp.List ((Sexp.Atom n) :: (Sexp.Atom v) :: []) ->
+            (n, (int_of_string v))
+        | _ -> failwith "not a valid pair"
+    in List.map paired xs
+
+let pair_of_sexp = function
+    | Sexp.List (l :: [r]) -> (Pattern.of_sexp l, Pattern.of_sexp r)
+    | _ -> failwith "not a valid rule"
 
 (* so that we can construct the dtrees *)
 module DTree = struct
@@ -187,41 +225,70 @@ module DTree = struct
                         else
                             s ^ "\n" ^ ks
                 in join (List.map f bindings) "\n"
+    let of_file (filename : string) (use_kbo : bool) : t =
+        let dtree = ref empty in
+        let parse_command s = match s with
+            | Sexp.List ((Sexp.Atom "rules") :: xs) ->
+                let pairs = List.map pair_of_sexp xs in
+                let dtrees = List.map (fun (lhs, rhs) -> of_rule lhs rhs false) pairs in
+                let m = fun dt -> dtree := merge !dtree dt in
+                    List.iter m dtrees
+            | Sexp.List ((Sexp.Atom "eqs") :: xs) ->
+                if use_kbo then
+                    let pairs = List.map pair_of_sexp xs in
+                    let dtrees = List.map (fun (lhs, rhs) -> of_rule lhs rhs true) pairs in
+                    let m = fun dt -> dtree := merge !dtree dt in
+                        List.iter m dtrees
+                else ()
+            | _ -> ()
+        in begin match (Sexp.load_sexp filename) with
+            | Sexp.List xs -> List.iter parse_command xs
+            | _ -> failwith "not a valid file"
+        end;
+        !dtree
 end
 
-let vlist_of_sexp xs =
-    let paired = function
-        | Sexp.List ((Sexp.Atom n) :: (Sexp.Atom v) :: []) ->
-            (n, (int_of_string v))
-        | _ -> failwith "not a valid pair"
-    in List.map paired xs
-
-let pair_of_sexp = function
-    | Sexp.List (l :: [r]) -> (Pattern.of_sexp l, Pattern.of_sexp r)
-    | _ -> failwith "not a valid rule"
-
-let load_file (filename : string) (use_kbo : bool) : DTree.t =
-    let dtree = ref DTree.empty in
-    let parse_command s = match s with
-        | Sexp.List ((Sexp.Atom "rules") :: xs) ->
-            let pairs = List.map pair_of_sexp xs in
-            let dtrees = List.map (fun (lhs, rhs) -> DTree.of_rule lhs rhs false) pairs in
-            let m = fun dt -> dtree := DTree.merge !dtree dt in
-                List.iter m dtrees
-        | Sexp.List ((Sexp.Atom "eqs") :: xs) ->
-            if use_kbo then
+module System = struct
+    type pair = Pattern.t * Pattern.t
+    type t = {
+        rules : pair list;
+        eqs : pair list;
+    }
+    let empty = {
+        rules = [];
+        eqs = [];
+    }
+    let merge (s : t) (t : t) : t =
+        {
+            rules = s.rules @ t.rules;
+            eqs = s.eqs @ t.eqs;
+        }
+    let of_file (filename : string) (use_kbo : bool) : t =
+        let system = ref empty in
+        let parse_command s = match s with
+            | Sexp.List ((Sexp.Atom "rules") :: xs) ->
                 let pairs = List.map pair_of_sexp xs in
-                let dtrees = List.map (fun (lhs, rhs) -> DTree.of_rule lhs rhs true) pairs in
-                let m = fun dt -> dtree := DTree.merge !dtree dt in
-                    List.iter m dtrees
-            else ()
-        | Sexp.List ((Sexp.Atom "weights") :: xs) ->
-            List.iter (fun (k, v) -> Kbo.add_weight k v) (vlist_of_sexp xs)
-        | Sexp.List ((Sexp.Atom "precs") :: xs) ->
-            List.iter (fun (k, v) -> Kbo.add_prec k v) (vlist_of_sexp xs)
-        | _ -> failwith "nope"
-    in begin match (Sexp.load_sexp filename) with
-        | Sexp.List xs -> List.iter parse_command xs
-        | _ -> failwith "not a valid file"
-    end;
-    !dtree
+                let m = fun (lhs, rhs) -> system := {!system with rules = !system.rules @ [(lhs, rhs)]} in
+                    List.iter m pairs
+            | Sexp.List ((Sexp.Atom "eqs") :: xs) ->
+                if use_kbo then
+                    let pairs = List.map pair_of_sexp xs in
+                    let m = fun (lhs, rhs) -> system := {!system with eqs = !system.eqs @ [(lhs, rhs)] @ [(rhs, lhs)]} in
+                        List.iter m pairs
+                else ()
+            | _ -> ()
+        in begin match (Sexp.load_sexp filename) with
+            | Sexp.List xs -> List.iter parse_command xs
+            | _ -> failwith "not a valid file"
+        end;
+        !system
+    let match_program (p : Core.program) (s : t) : bool =
+        let f (lhs, rhs) = match Pattern.match_program p lhs with
+            | Some _ -> true
+            | None -> false in
+        let g (lhs, rhs) = match Pattern.match_program p lhs with
+            | Some s -> Kbo.gt (Pattern.apply_sub lhs s) (Pattern.apply_sub rhs s)
+            | None -> false
+        in
+            (List.exists f s.rules) || (List.exists g s.eqs)
+end

@@ -111,14 +111,14 @@ module Program = struct
   let hash = Hashtbl.hash
 end
 
-module H = Hashtbl.Make(Program)
+(*module H = Hashtbl.Make(Program)
 let table = H.create 999999
 let hashcons x =
     try H.find table x
     with Not_found -> H.add table x x; x
 
 let leaf (n : string) : program = hashcons (Leaf n)
-let node ((f, arfs) : string * program list) : program = hashcons (Node (f, arfs))
+let node ((f, arfs) : string * program list) : program = hashcons (Node (f, arfs)) *)
 
 (* Subprogram with value vector *)
 module Vector = struct
