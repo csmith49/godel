@@ -1,4 +1,4 @@
-###Godel
+### Godel
 
 A continuation of knowledge from the Escher and Bach projects.
 
