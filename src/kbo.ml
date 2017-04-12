@@ -19,7 +19,7 @@ let add_prec (s : string) (p : int) : unit =
 (* so that we can pull the information when we need *)
 let get_weight (s : string) : int =
     try ValMap.find s !weights
-    with Not_found -> 2
+    with Not_found -> 1
 let get_prec (s : string) : int =
     try ValMap.find s !precs
     with Not_found -> 0
@@ -54,7 +54,9 @@ let rec modify_balances (vb : balance) (wb : int) (t : program) (y : string) (po
             if is_variable x then
                 if pos then (inc vb x), wb + mu, x = y
                 else (dec vb x), wb - mu, x = y
-            else vb, wb + (weight x), false
+            else
+                if pos then vb, wb + (weight x), false
+                else vb, wb - (weight x), false
         | Node (f, ss) ->
             let vbp, wbp, res = modify_balances_lex vb wb ss y pos in
                 if pos then vbp, wbp + (weight f), res
