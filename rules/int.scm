@@ -13,9 +13,8 @@
     )
     (eqs
         ((add @x @y) (add @y @x))
-        ((mult @x @y) (mult @y @x))
         ((add @x (add @y @z)) (add @z (add @x @y)))
-        ((add @z (add @x @y)) (add @x (add @y @z)))
+        ((mult @x @y) (mult @y @x))
         ((mult @x (add @y @z)) (mult @z (add @x @y)))
         ((mult @z (mult @x @y)) (add @x (add @y @z)))
     )
