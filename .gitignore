@@ -1,3 +1,4 @@
 _build
 godel.native
 experiments/norm_consistency/data/*.out
+exeriments/performance/data/*.csv

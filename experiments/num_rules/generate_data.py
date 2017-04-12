@@ -13,7 +13,7 @@ parser.add_argument("--output", "-o", default="data.csv")
 args = parser.parse_args()
 
 rule_string = " ".join(list(map(lambda s: "-rule " + s, args.rules)))
-CMD = "../../godel.native -target {} -subset {} -stats {}".format(args.benchmark, "{}", rule_string)
+CMD = "../../godel.native -target {} -subset {} -stats {} -dtree".format(args.benchmark, "{}", rule_string)
 
 # cleanly wrap a command execution with a timeout handler
 def run_command(cmd, seconds):

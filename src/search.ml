@@ -10,6 +10,11 @@ let hvalue (x, _) = match !Config.expansion_metric with
     | _ -> failwith "Unrecognized heuristic!"
 
 (* SECTION FOR NORMALIZATION STUFF *)
+(* we might want to cache things *)
+module ProgramTable = Hashtbl.Make(Program)
+let tbl : bool ProgramTable.t ref = ref (ProgramTable.create 139)
+
+(* useful wrappers *)
 let stats_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
     fun p ->
         let t = Sys.time () in
@@ -20,8 +25,15 @@ let stats_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
 let noisy_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
     fun p ->
         let ans = f p in
-            if ans then print_endline ("---> NORMALIZED: " ^ program_string p);
+            if not ans then print_endline ("---> NORMALIZED: " ^ program_string p);
             ans
+let cache_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
+    fun p ->
+        try ProgramTable.find !tbl p
+        with Not_found ->
+            let ans = f p in begin
+                ProgramTable.add !tbl p ans; ans
+            end
 (* the different root normals we can use *)
 let dtree_rn (p : Program.t) : bool =
     not (Normal.DTree.match_program p !Config.dtree)
@@ -36,20 +48,15 @@ let root_normal : (Program.t -> bool) =
 let rec dtree_n (p : Program.t) : bool = match p with
     | Leaf x -> not (Normal.DTree.match_program p !Config.dtree)
     | Node (f, ss) ->
-        if not (Normal.DTree.match_program p !Config.dtree) then
-            true
-        else
-            List.exists dtree_n ss
+        not (Normal.DTree.match_program p !Config.dtree) && (List.exists dtree_n ss)
 let rec system_n (p : Program.t) : bool = match p with
     | Leaf x -> not (Normal.System.match_program p !Config.system)
     | Node (f, ss) ->
-        if not (Normal.System.match_program p !Config.system) then
-            true
-        else
-            List.exists system_n ss
+        not (Normal.System.match_program p !Config.system) && (List.exists system_n ss)
 let normal : (Program.t -> bool) =
     let n = if !Config.use_dtree then dtree_n else system_n in
-    let np = if !Config.stats then stats_wrapper n else n in
+    let cn = cache_wrapper n in
+    let np = if !Config.stats then stats_wrapper cn else cn in
     if !Config.noisy then noisy_wrapper np else np
 
 (* used to short-circuit computation *)
@@ -180,12 +187,7 @@ let solveTD task =
     let check_program p =
         if (matches_goal p) && (not !Config.enumerate)
             then raise (Success (p, [||]));
-        if (!Config.reduce) && not (normal p) then
-            begin
-                if !Config.noisy then
-                    print_endline ("NORMALIZED ---> " ^ (program_string p));
-                false
-            end
+        if (!Config.reduce) && not (normal p) then false
         else true
     in
     let add_program p =
