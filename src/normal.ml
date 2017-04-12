@@ -195,7 +195,11 @@ module DTree = struct
         in
         let g =
             (fun l r -> let fp, lhs, rhs = FlatPattern.convert_pair l r in
-                let check = fun s -> Kbo.gt (Pattern.apply_sub lhs s) (Pattern.apply_sub rhs s) in
+                let check = fun s -> (
+                    let l = Pattern.apply_sub lhs s in
+                    let r = Pattern.apply_sub rhs s in
+                    let ans = Kbo.gt l r in
+                        ans) in
                     of_flatpattern fp check)
         in
         match ordered with

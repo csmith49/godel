@@ -1,5 +1,5 @@
 # control the shape of the data
-iterations = 10
+iterations = 3
 time_limit = 300
 # where's the exec and data and whatnot
 data = data

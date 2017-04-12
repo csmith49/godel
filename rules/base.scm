@@ -11,8 +11,6 @@
         (cond_int 1)
         (true 1)
         (false 1)
-        (a 1)
-        (b 2)
     )
     (precs
         (cond_int 20)
@@ -20,6 +18,9 @@
         (false 1)
         (a 2)
         (b 3)
+        (c 4)
+        (d 5)
+        (e 6)
     )
 
 )

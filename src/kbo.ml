@@ -43,9 +43,15 @@ let dec (vb : balance) (x : string) : balance =
         VarBal.add x (i - 1) vb
 
 let no_negative (vb : balance) : bool =
-    VarBal.exists (fun k v -> v > 0) vb
+    not (VarBal.exists (fun k v -> v < 0) vb)
 let no_positive (vb : balance) : bool =
-    VarBal.exists (fun k v -> v < 0) vb
+    not (VarBal.exists (fun k v -> v > 0) vb)
+
+let string_of_varbal (vb : balance) : string =
+    let out = ref "" in
+    let f = fun k v -> out := !out ^ ", " ^ k ^ " -> " ^ (string_of_int v) in
+    let _ = VarBal.iter f vb in
+        "(" ^ !out ^ ")"
 
 (* we tuple variable counting, weight balances, variable containment, all together *)
 let rec modify_balances (vb : balance) (wb : int) (t : program) (y : string) (pos : bool) : balance * int * bool =
@@ -74,65 +80,53 @@ and modify_balances_lex (vb : balance) (wb : int) (ss : program list) (y : strin
 type ordering = GT | LT | EQ | NA
 
 (* which finally gives us this monstrosity of a tupled kbo check *)
-let rec tkbo (vb : balance) (wb : int) (s : program) (t : program) : balance * int * ordering =
+let rec v_and_v (vb : balance) (wb: int) (x : string) (y : string) =
+    let vbp = dec (inc vb x) y in
+    let res = if x = y then EQ else NA in
+        vbp, wb, res
+and v_and_f (vb : balance) (wb : int) (x : string) (g : string) (ts : program list) =
+    let vbp, wbp, ctn = modify_balances vb wb (Node (g, ts)) x false in
+    let res = if ctn then LT else NA in
+    let vbpp = inc vbp x in
+        vbpp, wbp + mu, res
+and f_and_v (vb : balance) (wb : int) (f : string) (ss : program list) (y : string) =
+    let vbp, wbp, ctn = modify_balances vb wb (Node (f, ss)) y true in
+    let res = if ctn then GT else NA in
+    let vbpp = dec vbp y in
+        vbpp, wbp - mu, res
+and f_and_f (vb : balance) (wb : int) (f : string) (ss : program list) (g : string) (ts : program list) =
+    let vbp, wbp, lex = tkbo_aux vb wb f g ss ts in
+    let wbpp = wbp + (weight f) - (weight g) in
+    let g_or_n = if no_negative vbp then GT else NA in
+    let l_or_n = if no_positive vbp then LT else NA in
+        if wbpp > 0 then vbp, wbpp, g_or_n
+        else if wbpp < 0 then vbp, wbpp, l_or_n
+        else if prec f g then vbp, wbpp, g_or_n
+        else if prec g f then vbp, wbpp, l_or_n
+        else if not (f = g) then vbp, wbpp, NA
+        else if lex = EQ then vbp, wbpp, EQ
+        else if lex = GT then vbp, wbpp, g_or_n
+        else if lex = LT then vbp, wbpp, l_or_n
+        else vbp, wbpp, NA
+and tkbo (vb : balance) (wb : int) (s : program) (t : program) : balance * int * ordering =
     match s, t with
         (* case a *)
         | Leaf x, Leaf y -> begin match (is_variable x), (is_variable y) with
             (* true case a *)
-            | true, true ->
-                let vbp = dec (inc vb x) y in
-                let res = if x = y then EQ else NA in
-                    vbp, wb, res
+            | true, true -> v_and_v vb wb x y
             (* short-circuited case b *)
-            | true, false ->
-                let vbp, wbp, _ = modify_balances vb wb t x false in
-                let vbpp = inc vbp x in
-                    vbpp, wbp + mu, NA
+            | true, false -> v_and_f vb wb x y []
             (* and c *)
-            | false, true ->
-                let vbp, wbp, _ = modify_balances vb wb s y true in
-                let vbpp = dec vbp y in
-                    vbpp, wbp - mu, NA
+            | false, true -> f_and_v vb wb x [] y
             (* and d *)
-            | false, false ->
-                let vbp, wbp, _ = tkbo_aux vb wb x y [] [] in
-                let wbpp = wbp + (weight x) - (weight y) in
-                let g_or_n = if no_negative vbp then GT else NA in
-                let l_or_n = if no_positive vbp then LT else NA in
-                    if wbpp > 0 then vbp, wbpp, g_or_n
-                    else if wbpp < 0 then vbp, wbpp, l_or_n
-                    else if prec x y then vbp, wbpp, g_or_n
-                    else if prec y x then vbp, wbpp, l_or_n
-                    else if not (x = y) then vbp, wbpp, NA
-                    else vbp, wbpp, EQ
+            | false, false -> f_and_f vb wb x [] y []
         end
         (* case b *)
-        | Leaf x, Node (g, ts) ->
-            let vbp, wbp, ctn = modify_balances vb wb t x false in
-            let res = if ctn then LT else NA in
-            let vbpp = inc vbp x in
-                vbpp, wbp + mu, res
+        | Leaf x, Node (g, ts) -> v_and_f vb wb x g ts
         (* case c *)
-        | Node (f, ss), Leaf y ->
-            let vbp, wbp, ctn = modify_balances vb wb s y true in
-            let res = if ctn then GT else NA in
-            let vbpp = dec vbp y in
-                vbpp, wbp - mu, res
+        | Node (f, ss), Leaf y -> f_and_v vb wb f ss y
         (* case d *)
-        | Node (f, ss), Node (g, ts) ->
-            let vbp, wbp, lex = tkbo_aux vb wb f g ss ts in
-            let wbpp = wbp + (weight f) - (weight g) in
-            let g_or_n = if no_negative vbp then GT else NA in
-            let l_or_n = if no_positive vbp then LT else NA in
-                if wbpp > 0 then vbp, wbpp, g_or_n
-                else if wbpp < 0 then vbp, wbpp, l_or_n
-                else if prec f g then vbp, wbpp, g_or_n
-                else if prec g f then vbp, wbpp, l_or_n
-                else if not (f = g) then vbp, wbpp, NA
-                else if lex = EQ then vbp, wbpp, EQ
-                else if lex = GT then vbp, wbpp, g_or_n
-                else if lex = LT then vbp, wbpp, l_or_n
-                else vbp, wbpp, NA
+        | Node (f, ss), Node (g, ts) -> f_and_f vb wb f ss g ts
 and tkbo_aux (vb : balance) (wb : int) (f : string) (g : string) (ss : program list) (ts : program list) : balance * int * ordering =
     if f = g then tkbo_lex vb wb ss ts
     else
