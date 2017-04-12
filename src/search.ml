@@ -27,13 +27,6 @@ let noisy_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
         let ans = f p in
             if not ans then print_endline ("---> NORMALIZED: " ^ program_string p);
             ans
-let cache_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
-    fun p ->
-        try ProgramTable.find !tbl p
-        with Not_found ->
-            let ans = f p in begin
-                ProgramTable.add !tbl p ans; ans
-            end
 (* the different root normals we can use *)
 let dtree_rn (p : Program.t) : bool =
     not (Normal.DTree.match_program p !Config.dtree)
@@ -55,8 +48,7 @@ let rec system_n (p : Program.t) : bool = match p with
         not (Normal.System.match_program p !Config.system) && (List.exists system_n ss)
 let normal : (Program.t -> bool) =
     let n = if !Config.use_dtree then dtree_n else system_n in
-    let cn = cache_wrapper n in
-    let np = if !Config.stats then stats_wrapper cn else cn in
+    let np = if !Config.stats then stats_wrapper n else n in
     if !Config.noisy then noisy_wrapper np else np
 
 (* used to short-circuit computation *)
