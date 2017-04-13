@@ -2,6 +2,7 @@
     (rules
         ((abs 0) 0)
         ((add (add @x @y) @z) (add @x (add @y @z)))
+        ((mult (mult @x @y) @z) (mult @x (mult @y @z)))
         ((add 0 @x) @x)
         ((add @x 0) @x)
         ((mult @x 0) 0)
@@ -15,8 +16,7 @@
         ((add @x @y) (add @y @x))
         ((add @x (add @y @z)) (add @z (add @x @y)))
         ((mult @x @y) (mult @y @x))
-        ((mult @x (add @y @z)) (mult @z (add @x @y)))
-        ((mult @z (mult @x @y)) (add @x (add @y @z)))
+        ((mult @x (mult @y @z)) (mult @z (mult @x @y)))
     )
     (weights
         (abs 4)

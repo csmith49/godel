@@ -22,9 +22,7 @@
         ((and @x @y) (and @y @x))
         ((or @x @y) (or @y @x))
         ((and @x (and @y @z)) (and @z (and @x @y)))
-        ((and @z (and @x @y)) (and @x (and @y @z)))
         ((or @x (or @y @z)) (or @z (or @x @y)))
-        ((or @z (or @x @y)) (or @x (or @y @z)))
     )
     (weights
         (and 1)

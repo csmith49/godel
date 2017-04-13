@@ -199,8 +199,10 @@ module DTree = struct
                     let l = Pattern.apply_sub lhs s in
                     let r = Pattern.apply_sub rhs s in
                     let ans = Kbo.gt l r in
+                        (* let _ = print_endline ((Core.program_string l) ^ " >> " ^ (Core.program_string r) ^ " : " ^ (string_of_bool ans)) in *)
                         ans) in
                     of_flatpattern fp check)
+                    (* of_flatpattern fp (fun s -> false)) *)
         in
         match ordered with
             | false -> f lhs rhs
