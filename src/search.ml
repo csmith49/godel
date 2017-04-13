@@ -41,11 +41,11 @@ let root_normal : (Program.t -> bool) =
 let rec dtree_n (p : Program.t) : bool = match p with
     | Leaf x -> not (Normal.DTree.match_program p !Config.dtree)
     | Node (f, ss) ->
-        not (Normal.DTree.match_program p !Config.dtree) && (List.exists dtree_n ss)
+        not (Normal.DTree.match_program p !Config.dtree) && (List.for_all dtree_n ss)
 let rec system_n (p : Program.t) : bool = match p with
     | Leaf x -> not (Normal.System.match_program p !Config.system)
     | Node (f, ss) ->
-        not (Normal.System.match_program p !Config.system) && (List.exists system_n ss)
+        not (Normal.System.match_program p !Config.system) && (List.for_all system_n ss)
 let normal : (Program.t -> bool) =
     let n = if !Config.use_dtree then dtree_n else system_n in
     let np = if !Config.stats then stats_wrapper n else n in
