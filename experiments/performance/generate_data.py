@@ -11,7 +11,7 @@ parser.add_argument("--output", "-o", default="data.csv")
 parser.add_argument("--timeout", "-t", default=300, type=int)
 args = parser.parse_args()
 
-# the rules
+# the rules, which we need because we can't use -dense
 RULES = [
     "../../rules/avg.scm",
     "../../rules/base.scm",
@@ -27,12 +27,15 @@ RULESTRING = " ".join(map(lambda r: "-rule {}".format(r), RULES))
 # the executable
 GODEL = "../../godel.native"
 # the commands
-BU = "{godel} -target {bm} -stats".format(godel=GODEL, bm=args.benchmark)
-BUN = "{godel} -target {bm} -stats -no-kbo -dtree {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
-BUNK = "{godel} -target {bm} -stats -dtree {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
-TD = "{godel} -target {bm} -stats -strategy td".format(godel=GODEL, bm=args.benchmark)
-TDN = "{godel} -target {bm} -stats -strategy td -no-kbo -dtree {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
-TDNK = "{godel} -target {bm} -stats -strategy td -dtree {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
+cmds = [(k, v.format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)) for k, v in [
+    ("BU", "{godel} -target {bm} -stats"),
+    ("BUN", "{godel} -target {bm} -stats -no-kbo -dtree {rules}"),
+    ("BUNK", "{godel} -target {bm} -stats -dtree {rules}"),
+    ("TD", "{godel} -target {bm} -stats -strategy td"),
+    ("TDN", "{godel} -target {bm} -stats -strategy td -no-kbo -dtree {rules}"),
+    ("TDNK", "{godel} -target {bm} -stats -strategy td -dtree {rules}")
+]]
+# our container for data
 
 # cleanly wrap a command execution with a timeout handler
 def run_command(cmd):
@@ -42,36 +45,51 @@ def run_command(cmd):
     except TimeoutExpired as e:
         return e.output.decode(sys.stdout.encoding)
 
-# process godel's output to get the execution time
-def get_time(output):
+# process godel's output to get the execution time, norm time, and number of programs visited
+def get_data(output):
     try:
         lines = output.split("\n")
+        # grab the time
         time_line = list(filter(lambda l: l.startswith("TIME:"), lines))[0]
-        return float(time_line.split()[-1])
+        time = float(time_line.split()[-1])
+        # the norm time
+        norm_line = list(filter(lambda l: l.startswith("NORM TIME:"), lines))[0]
+        norm = float(norm_line.split()[-1])
+        # and the programs visited
+        prog_line = list(filter(lambda l: l.startswith("NUM_PROGS:"), lines))[0]
+        prog = int(prog_line.split()[-1])
+        return time, norm, prog
     except Exception as e:
         print(e)
-        return args.timeout
+        return args.timeout, args.timeout, 0
 
 # repeatedly run experiment to get a single data frame
 def get_frame():
-    experiments = [BU, BUN, BUNK, TD, TDN, TDNK]
-    output = []
-    for e in experiments:
-        d = get_time(run_command(e))
+    row = []
+    for ex, cmd in cmds:
+        if args.verbose: print("CHECKING {}...".format(ex))
+        time, norm, prog = get_data(run_command(cmd))
         if args.verbose:
-            print("--> {}".format(d))
-        output.append(d)
-    return output
+            print("\tTOTAL TIME: {}".format(time))
+            print("\tNORMs TIME: {}".format(norm))
+            print("\t# OF PROGS: {}".format(prog))
+        row.extend([time, norm, prog])
+    return row
 
 # now get and save all the data
-data = [["BU", "BUN", "BUNK", "TD", "TDN", "TDNK"]]
+data = []
 for i in range(args.iterations):
     if args.verbose:
-        print("Getting frame {}...".format(i+1))
+        print("<== ITERATION {} ==>".format(i+1))
     data.append(get_frame())
+
+fields = []
+for ex, _ in cmds:
+    fields.extend(map(lambda f: f.format(ex), ["{}_t", "{}_n", "{}_p"]))
 
 # write the frames out to file
 with open(args.output, "w") as f:
     writer = csv.writer(f, delimiter="\t")
+    writer.writerow(fields)
     for row in data:
         writer.writerow(row)
