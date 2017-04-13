@@ -27,10 +27,10 @@ RULESTRING = " ".join(map(lambda r: "-rule {}".format(r), RULES))
 # the executable
 GODEL = "../../godel.native"
 # the commands
-BU = "{godel} -target {bm} -stats {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
+BU = "{godel} -target {bm} -stats".format(godel=GODEL, bm=args.benchmark)
 BUN = "{godel} -target {bm} -stats -no-kbo -dtree {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
 BUNK = "{godel} -target {bm} -stats -dtree {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
-TD = "{godel} -target {bm} -stats -strategy td {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
+TD = "{godel} -target {bm} -stats -strategy td".format(godel=GODEL, bm=args.benchmark)
 TDN = "{godel} -target {bm} -stats -strategy td -no-kbo -dtree {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
 TDNK = "{godel} -target {bm} -stats -strategy td -dtree {rules}".format(godel=GODEL, bm=args.benchmark, rules=RULESTRING)
 
