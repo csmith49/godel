@@ -5,9 +5,19 @@ open Eval
 open Config
 open Normal
 
+(* let's be careful with the hvalue construction *)
+module TD = struct
+    type t = int * int
+    let leq a b = match a, b with
+        | (lh, lv), (rh, rv) ->
+            lh <= rh || (lh = rh && lv <= rv)
+end
+(* so now the hvalue is paired *)
 let hvalue (x, _) = match !Config.expansion_metric with
-    | "size" -> program_size x
+    | "size" -> (program_size x, Hashtbl.hash x)
     | _ -> failwith "Unrecognized heuristic!"
+(* and our frontier is as follows *)
+module Frontier = Eval.PriorityQueue(TD)
 
 (* SECTION FOR NORMALIZATION STUFF *)
 (* we might want to cache things *)
@@ -168,7 +178,7 @@ let solveTD task =
         | h :: hs -> get_all_completions prog h
     in
     (* now the iterative part - we search over a pqueue *)
-    let frontier = ref PQueue.empty in
+    let frontier = ref Frontier.empty in
     let h_seen = ref 0 in
     let metric p = hvalue (p, [||]) in
     (* TODO - add normalization here *)
@@ -184,15 +194,15 @@ let solveTD task =
     in
     let add_program p =
         if (check_program p) then
-            frontier := PQueue.push !frontier (metric p) p;
+            frontier := Frontier.push !frontier (metric p) p;
     in
     begin
         List.iter (fun c -> let p = (unexpanded_comp c) in
-            frontier := (PQueue.push !frontier (metric p) p);
+            frontier := (Frontier.push !frontier (metric p) p);
         ) (get_all_comps task.target.codomain);
 
         while !h_seen < !Config.max_height; do
-            let h, p, q = PQueue.pop !frontier in
+            let (h, _), p, q = Frontier.pop !frontier in
             frontier := q;
             program_count := !program_count + 1;
             if !noisy then print_endline (program_string p);
@@ -274,7 +284,7 @@ let solveBU task =
     in let expand_component c array i =
         let f x =
             let vector = apply_component c x in
-            let h_value = hvalue vector in
+            let (h_value, _) = hvalue vector in
                 if h_value < !Config.max_height then
                     if check_vector vector then
                         array.(h_value) <- VMSet.add vector array.(h_value)

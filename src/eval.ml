@@ -1,6 +1,35 @@
 open Core
 open Components
 
+module type PRIORITY = sig
+    type t
+    val leq : t -> t -> bool
+end
+
+module PriorityQueue = functor (P : PRIORITY) -> struct
+    type priority = P.t
+    type 'a queue = Empty | Node of priority * 'a * 'a queue * 'a queue
+    let empty = Empty
+    let rec push queue p e = match queue with
+        | Empty -> Node (p, e, Empty, Empty)
+        | Node (pc, ec, left, right) ->
+            if P.leq p pc
+                then Node (p, e, push right pc ec, left)
+                else Node (pc, ec, push right p e, left)
+    exception Queue_is_empty
+    let rec remove_top = function
+        | Empty -> raise Queue_is_empty
+        | Node (p, e, left, Empty) -> left
+        | Node (p, e, Empty, right) -> right
+        | Node (p, e, (Node (lp, le, _, _) as left), (Node (rp, re, _, _) as right)) ->
+            if P.leq lp rp
+                then Node (lp, le, remove_top left, right)
+                else Node (rp, re, left, remove_top right)
+    let pop = function
+        | Empty -> raise Queue_is_empty
+        | Node (p, e, _, _) as queue -> (p, e, remove_top queue)
+end
+
 module PQueue = struct
     type priority = int
     type 'a queue = Empty | Node of priority * 'a * 'a queue * 'a queue
