@@ -69,7 +69,8 @@ if __name__ == '__main__':
     data["%O"] = data.apply(get_overhead, axis=1)
 
     sns.set(style="white")
-    f_data = data[(data["%N"] > 0) & (data["_t"] > 1)]
+    # f_data = data[(data["%N"] > 0) & (data["_t"] > 1)]
+    f_data = data[(data["%N"] > 0)]
 
-    sns.jointplot(x="%N", y="%O", data=f_data, kind="kde")
+    sns.jointplot(x="%N", y="%O", data=f_data, kind="kde", space=0, stat_func=None)
     sns.plt.show()
