@@ -10,10 +10,13 @@ parser.add_argument("--iterations", "-i", default=10, type=int)
 parser.add_argument("--rules", "-r", nargs="+")
 parser.add_argument("--maxsize", "-m", default=10, type=int)
 parser.add_argument("--output", "-o", default="data.csv")
+parser.add_argument("--topdown", "-t", default=False, action="store_true")
 args = parser.parse_args()
 
 rule_string = " ".join(list(map(lambda s: "-rule " + s, args.rules)))
 CMD = "../../godel.native -target {} -subset {} -stats {} -dtree".format(args.benchmark, "{}", rule_string)
+if args.topdown:
+    CMD = CMD + " -strategy td"
 
 # cleanly wrap a command execution with a timeout handler
 def run_command(cmd, seconds):

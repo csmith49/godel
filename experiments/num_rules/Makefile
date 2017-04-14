@@ -1,20 +1,21 @@
 benchmarks = eq_add eq_str_upper_len eq_str_max eq_min_pair
-graph_files = $(foreach bm, $(benchmarks), graphs/$(bm).png)
+graph_files = $(foreach bm, $(benchmarks), graphs/$(bm).png) $(foreach bm, $(benchmarks), graphs/$(bm)_td.png)
+rules_list = avg base bool int_compare int_extended int list string tuple
+rules_dir = ../../rules
+rules_files = $(foreach r, $(rules_list), $(rules_dir)/$(r).scm)
+
 
 .phony: all
-all: $(graph_files)
+all: data $(graph_files)
 
-data/eq_add.csv: generate_data.py
-	python3 generate_data.py eq_add -i 10 -r ../../rules/int.scm -m 60 -o data/eq_add.csv -v
+data:
+	mkdir -p data
 
-data/eq_str_upper_len.csv: generate_data.py
-	python3 generate_data.py eq_str_upper_len -i 10 -r ../../rules/int_compare.scm ../../rules/string.scm ../../rules/base.scm -m 40 -o data/eq_str_upper_len.csv -v
+data/%.csv:
+	python3 generate_data.py $* -i 5 -m 60 -r $(rules_files) -o $@ -v
 
-data/eq_str_max.csv: generate_data.py
-	python3 generate_data.py eq_str_max -i 10 -r ../../rules/int_compare.scm ../../rules/string.scm ../../rules/base.scm -m 50 -o data/eq_str_max.csv -v
-
-data/eq_min_pair.csv: generate_data.py
-		python3 generate_data.py eq_str_max -i 10 -r ../../rules/int.scm -r ../../rules/int_compare.scm ../../rules/string.scm ../../rules/base.scm -m 50 -o data/eq_min_pair.csv -v
+data/%_td.csv:
+	python3 generate_data.py $* -i 5 -m 60 -r $(rules_files) -o $@ -v -t
 
 # from every piece of data we get, it's easy enough to make a graph
 graphs/%.png: data/%.csv ../csv_to_graph.py
