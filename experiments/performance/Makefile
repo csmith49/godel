@@ -16,12 +16,12 @@ eq_str_lower_len eq_ls_sum eq_ls_min eq_ls_max eq_ls_stutter \
 eq_avg_pair
 
 .phony: all
-all: $(foreach bm,$(benchmarks),$(data)/$(bm).csv)
+all: $(data) $(foreach bm,$(benchmarks),$(data)/$(bm).csv)
 
 $(data):
 	mkdir -p $(data)
 
-$(data)/%.csv: $(data)
+$(data)/%.csv:
 	$(test) $* -i $(iterations) -t $(time_limit) -v -o $@
 
 .phony: clean

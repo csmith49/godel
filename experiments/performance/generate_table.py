@@ -35,9 +35,11 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("data")
     parser.add_argument("--output", "-o", default="table.csv")
+    parser.add_argument("--tags", "-t", nargs="+", default=["t"], choices=["t", "n", "p"])
     args = parser.parse_args()
 
-    KEYS = ["BU", "BUN", "BUNK", "TD", "TDN", "TDNK"]
+    BMs = ["BU", "BUN", "BUNK", "TD", "TDN", "TDNK"]
+    FIELDS = [f for sublist in [list(map(lambda k: "{}_{}".format(ex, k), args.tags)) for ex in BMs] for f in sublist]
 
     data = load_data(args.data)
-    write_data(data, KEYS, args.output)
+    write_data(data, FIELDS, args.output)
