@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 import os
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 def load_file(filename):
     output = defaultdict(lambda: 0)
@@ -26,51 +27,47 @@ def load_data(dirname):
         output[name] = data
     return pd.DataFrame(output).T
 
-def get_overhead(bm):
-    return bm["NK_n"] / bm["NK_t"]
-
-def get_norm(bm):
-    wo = bm["_p"]
-    w = bm["NK_p"]
-    if wo == 0:
-        return 0
-    else:
-        return (wo - w) / wo
+def get_frame(data, bu, kbo):
+    output = pd.DataFrame()
+    # choose the relevant kbo string
+    if kbo: kbo_string = "K"
+    else: kbo_string = ""
+    # and the relevant strat string
+    if bu: strat_string = "BU"
+    else: strat_string = "TD"
+    # filter by the non-terminating results
+    base_time = "{}_t".format(strat_string)
+    data = data[(data[base_time] < 300) & (data[base_time] > 1)]
+    # now let's get our overhead
+    n_n = "{}N{}_n".format(strat_string, kbo_string)
+    n_t = "{}N{}_t".format(strat_string, kbo_string)
+    output["overhead"] = data.apply(lambda e: e[n_n] / e[n_t], axis=1)
+    # our normalization percent
+    p = "{}_p".format(strat_string)
+    n_p = "{}N{}_p".format(strat_string, kbo_string)
+    output["reduction"] = data.apply(lambda e: (e[p] - e[n_p]) / e[p], axis=1)
+    # and now add our labels
+    output["strategy"] = output.apply(lambda e: strat_string, axis=1)
+    output["normalization"] = output.apply(lambda e: "ordered" if kbo else "unordered", axis=1)
+    return output
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("data")
     parser.add_argument("--output", "-o", default="scatterplot.png")
+    parser.add_argument("--topdown", "-t", default=False, action="store_true")
+    parser.add_argument("--kbo", "-k", default=False, action="store_true")
     args = parser.parse_args()
 
-    data = load_data(args.data)
-    # make clean bu data
-    bu = data.copy()
-    bu.index = ["{}_bu".format(i) for i in bu.index]
-    bu["strategy"] = bu.apply(lambda x: "BU", axis=1)
-    bu["_p"] = bu["BU_p"]
-    bu["NK_n"] = bu["BUNK_n"]
-    bu["NK_t"] = bu["BUNK_t"]
-    bu["NK_p"] = bu["BUNK_p"]
-    bu["_t"] = bu["BU_t"]
-    # and td data
-    td = data.copy()
-    td.index = ["{}_td".format(i) for i in td.index]
-    td["strategy"] = td.apply(lambda x: "TD", axis=1)
-    td["_p"] = td["TD_p"]
-    td["NK_n"] = td["TDNK_n"]
-    td["NK_t"] = td["TDNK_t"]
-    td["NK_p"] = td["TDNK_p"]
-    td["_t"] = td["TD_t"]
-    # join them all together
-    data = bu.append(td)[["strategy", "_p", "NK_n", "NK_t", "NK_p", "_t"]]
+    # load in the data, split it up into howver many frames
+    raw_data = load_data(args.data)
+    data = get_frame(raw_data, args.topdown, args.kbo)
 
-    data["%N"] = data.apply(get_norm, axis=1)
-    data["%O"] = data.apply(get_overhead, axis=1)
-
+    # now we worry about graphing
     sns.set(style="white")
-    # f_data = data[(data["%N"] > 0) & (data["_t"] > 1)]
-    f_data = data[(data["%N"] > 0)]
+    # sns.set_color_codes("pastel")
+    g = sns.JointGrid(x="reduction", y="overhead", data=data, xlim=(0,1), ylim=(0,1), space=0)
+    g = g.plot_joint(sns.kdeplot, shade=True, shade_lowest=False,cmap="BuGn")
+    g = g.plot_marginals(sns.kdeplot, shade=True, color="g")
 
-    sns.jointplot(x="%N", y="%O", data=f_data, kind="kde", space=0, stat_func=None)
-    sns.plt.show()
+    sns.plt.savefig(args.output)
