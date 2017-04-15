@@ -1103,7 +1103,7 @@ let eq_ls_sum2 = {
             let ints = List.map (fun (VInt i) -> i) (xs @ ys) in
             VList [VInt (List.fold_left (+) 2 ints)]
         | _ -> VError);
-    name = "eq_ls_sum"
+    name = "eq_ls_sum2"
 }
 
 let eq_ls_sum_abs = {
@@ -1114,7 +1114,7 @@ let eq_ls_sum_abs = {
             let ints = List.map (fun (VInt i) -> i) (xs @ ys) in
             VList [VInt (abs (List.fold_left (+) 0 ints))]
         | _ -> VError);
-    name = "eq_ls_sum"
+    name = "eq_ls_sum_abs"
 }
 
 let eq_ls_min = {
