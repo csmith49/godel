@@ -267,7 +267,7 @@ let eq_ls_stutter = {(list_task eq_ls_stutter) with components = (
         IntComponents.min_components @ ListComponents.min_components @
         IntExtendedComponents.components)}
 
-let list_tasks = [eq_ls_sum; eq_ls_min; eq_ls_max; eq_ls_stutter]
+let list_tasks = [eq_ls_sum; eq_ls_min; eq_ls_max; eq_ls_stutter; eq_ls_sum2; eq_ls_sum_abs]
 
 (* random tasks *)
 let eq_avg_pair = {
