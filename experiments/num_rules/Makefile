@@ -6,12 +6,12 @@ rules_files = $(foreach r, $(rules_list), $(rules_dir)/$(r).scm)
 
 
 .phony: all
-all: data $(graph_files)
+all: data $(foreach bm, $(benchmarks), data/$(bm)_bu.csv data/$(bm)_td.csv)
 
 data:
 	mkdir -p data
 
-data/%.csv:
+data/%_bu.csv:
 	python3 generate_data.py $* -i 5 -m 60 -r $(rules_files) -o $@ -v
 
 data/%_td.csv:
