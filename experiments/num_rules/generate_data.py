@@ -11,10 +11,13 @@ parser.add_argument("--rules", "-r", nargs="+")
 parser.add_argument("--maxsize", "-m", default=10, type=int)
 parser.add_argument("--output", "-o", default="data.csv")
 parser.add_argument("--topdown", "-t", default=False, action="store_true")
+parser.add_argument("--strategy", "-s", default=False, action="store_true")
 args = parser.parse_args()
 
 rule_string = " ".join(list(map(lambda s: "-rule " + s, args.rules)))
-CMD = "../../godel.native -target {} -subset {} -stats {} -dtree".format(args.benchmark, "{}", rule_string)
+CMD = "../../godel.native -target {} -subset {} -stats {}".format(args.benchmark, "{}", rule_string)
+if not args.strategy:
+    CMD = CMD + " -dtree"
 if args.topdown:
     CMD = CMD + " -strategy td"
 
