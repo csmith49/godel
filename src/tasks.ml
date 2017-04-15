@@ -259,6 +259,8 @@ let list_task t = {
 }
 
 let eq_ls_sum = list_task eq_ls_sum
+let eq_ls_sum2 = list_task eq_ls_sum2
+let eq_ls_sum_abs = list_task eq_ls_sum_abs
 let eq_ls_min = list_task eq_ls_min
 let eq_ls_max = list_task eq_ls_max
 let eq_ls_stutter = {(list_task eq_ls_stutter) with components = (

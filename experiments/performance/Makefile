@@ -13,7 +13,7 @@ eq_distances eq_sum_to_second eq_add_q_long eq_sub_q_long \
 eq_mult_q_long eq_div_q_long eq_str_add eq_str_max eq_str_mult \
 eq_str_split eq_str_len eq_str_trim_len eq_str_upper_len \
 eq_str_lower_len eq_ls_sum eq_ls_min eq_ls_max eq_ls_stutter \
-eq_avg_pair
+eq_avg_pair eq_ls_sum2 eq_ls_sum_abs
 
 .phony: all
 all: $(data) $(foreach bm,$(benchmarks),$(data)/$(bm).csv) graphing

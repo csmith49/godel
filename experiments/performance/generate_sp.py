@@ -64,7 +64,7 @@ if __name__ == '__main__':
     data = get_frame(raw_data, args.topdown, args.kbo)
 
     # now we worry about graphing
-    sns.set(style="white")
+    sns.set(style="white", font_scale=1.4)
     # sns.set_color_codes("pastel")
     g = sns.JointGrid(x="reduction", y="overhead", data=data, xlim=(0,1), ylim=(0,1), space=0)
     g = g.plot_joint(sns.kdeplot, shade=True, shade_lowest=False,cmap="BuGn")

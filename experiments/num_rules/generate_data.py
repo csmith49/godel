@@ -55,7 +55,7 @@ def get_frame(size):
 
 # now get and save all the data
 data = []
-for size in range(args.maxsize):
+for size in range(1, args.maxsize, 5):
     data.append(get_frame(size))
 
 # write the frames out to file

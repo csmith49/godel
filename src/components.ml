@@ -1095,6 +1095,28 @@ let eq_ls_sum = {
     name = "eq_ls_sum"
 }
 
+let eq_ls_sum2 = {
+    domain = [TList; TList];
+    codomain = TList;
+    apply = (function
+        | [VList xs; VList ys] ->
+            let ints = List.map (fun (VInt i) -> i) (xs @ ys) in
+            VList [VInt (List.fold_left (+) 2 ints)]
+        | _ -> VError);
+    name = "eq_ls_sum"
+}
+
+let eq_ls_sum_abs = {
+    domain = [TList; TList];
+    codomain = TList;
+    apply = (function
+        | [VList xs; VList ys] ->
+            let ints = List.map (fun (VInt i) -> i) (xs @ ys) in
+            VList [VInt (abs (List.fold_left (+) 0 ints))]
+        | _ -> VError);
+    name = "eq_ls_sum"
+}
+
 let eq_ls_min = {
     domain = [TList; TList];
     codomain = TList;
