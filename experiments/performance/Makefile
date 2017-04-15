@@ -16,13 +16,23 @@ eq_str_lower_len eq_ls_sum eq_ls_min eq_ls_max eq_ls_stutter \
 eq_avg_pair
 
 .phony: all
-all: $(data) $(foreach bm,$(benchmarks),$(data)/$(bm).csv)
+all: $(data) $(foreach bm,$(benchmarks),$(data)/$(bm).csv) graphing
 
 $(data):
 	mkdir -p $(data)
 
 $(data)/%.csv:
 	$(test) $* -i $(iterations) -t $(time_limit) -v -o $@
+
+graphs:
+	mkdir -p graphs
+
+.phony: graphing
+graphing: graphs generate_sp.py
+	python3 generate_sp.py $(data) -o graphs/bun.png
+	python3 generate_sp.py $(data) -o graphs/bunk.png -k
+	python3 generate_sp.py $(data) -o graphs/tdn.png -t
+	python3 generate_sp.py $(data) -o graphs/tdnk.png -t -k
 
 .phony: clean
 clean:
