@@ -125,7 +125,7 @@ module IntComponents = struct
         name = "1"
     }
 
-    let components = [add; mult; sub; abs; zero; one]
+    let components = [add; mult; sub; abs; zero]
     let min_components = [add; mult; abs; zero]
     let bot_components = [add; zero]
 end

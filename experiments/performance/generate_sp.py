@@ -64,10 +64,13 @@ if __name__ == '__main__':
     data = get_frame(raw_data, args.topdown, args.kbo)
 
     # now we worry about graphing
-    sns.set(style="white", font_scale=1.4)
+    rc={'font.size': 32, 'axes.labelsize': 24, 'legend.fontsize': 32.0, 'axes.titlesize': 32, 'xtick.labelsize': 16, 'ytick.labelsize': 16}
+    sns.set(style="white", rc=rc)
     # sns.set_color_codes("pastel")
     g = sns.JointGrid(x="reduction", y="overhead", data=data, xlim=(0,1), ylim=(0,1), space=0)
     g = g.plot_joint(sns.kdeplot, shade=True, shade_lowest=False,cmap="BuGn")
     g = g.plot_marginals(sns.kdeplot, shade=True, color="g")
+    g.ax_joint.set_xticks([0,0.2, 0.4, 0.6, 0.8, 1])
+    g.ax_joint.set_yticks([0,0.2, 0.4, 0.6, 0.8, 1])
 
     sns.plt.savefig(args.output)
