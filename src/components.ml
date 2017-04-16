@@ -1112,7 +1112,7 @@ let eq_ls_sum_abs = {
     apply = (function
         | [VList xs; VList ys] ->
             let ints = List.map (fun (VInt i) -> i) (xs @ ys) in
-            VList [VInt (abs (List.fold_left (+) 0 ints))]
+            VList [VInt (abs (List.fold_left (+) 0 (ints)))]
         | _ -> VError);
     name = "eq_ls_sum_abs"
 }

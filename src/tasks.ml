@@ -248,7 +248,7 @@ let list_inputs = [
     (Leaf "b", [|
         int_list [11; 0; 4];
         int_list [1; 1];
-        int_list [-1; 3; 6]|])]
+        int_list [-1; -3; -6]|])]
 
 let list_task t = {
     target = t;
