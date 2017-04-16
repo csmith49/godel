@@ -1,4 +1,4 @@
-benchmarks = eq_min_pair
+benchmarks = eq_str_len
 graph_files = $(foreach bm, $(benchmarks), graphs/$(bm).png) $(foreach bm, $(benchmarks), graphs/$(bm)_td.png)
 rules_list = avg base bool int_compare int_extended int list string tuple
 rules_dir = ../../rules

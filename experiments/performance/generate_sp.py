@@ -62,6 +62,7 @@ if __name__ == '__main__':
     # load in the data, split it up into howver many frames
     raw_data = load_data(args.data)
     data = get_frame(raw_data, args.topdown, args.kbo)
+    print(data)
 
     # now we worry about graphing
     rc={'font.size': 32, 'axes.labelsize': 24, 'legend.fontsize': 32.0, 'axes.titlesize': 32, 'xtick.labelsize': 16, 'ytick.labelsize': 16}
