@@ -252,6 +252,7 @@ let solveBU task =
             incr program_count;
             if !symmetry_reduction && (not init) then
                 seen := VMSet.add v (!seen);
+            (* Unix.sleepf 0.0001; *)
             if (final_goal = (snd v)) && (not !enumerate) then
                 raise (Success v);
             true

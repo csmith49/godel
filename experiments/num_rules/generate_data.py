@@ -15,7 +15,7 @@ parser.add_argument("--strategy", "-s", default=False, action="store_true")
 args = parser.parse_args()
 
 rule_string = " ".join(list(map(lambda s: "-rule " + s, args.rules)))
-CMD = "../../godel.native -target {} -subset {} -stats {}".format(args.benchmark, "{}", rule_string)
+CMD = "../../godel.native -no-kbo -target {} -subset {} -stats {}".format(args.benchmark, "{}", rule_string)
 if not args.strategy:
     CMD = CMD + " -dtree"
 if args.topdown:
