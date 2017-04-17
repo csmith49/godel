@@ -7,6 +7,8 @@ import csv
 
 # eh, arguments and stuff
 parser = ArgumentParser("Graph generation for CSV files.")
+parser.add_argument("-b", "--benchmark")
+parser.add_argument("-t", "--topdown", default=False, action="store_true")
 parser.add_argument("-o", "--output", default="")
 args = parser.parse_args()
 
@@ -19,9 +21,14 @@ def load_data(filename):
             data.append(map(float, row))
     return list(map(list, zip(*data)))
 
-# load more data
-bu = load_data("data/eq_str_len_bu.csv")
-bus = load_data("data/eq_str_len_bu_old.csv")
+# figure out what we're loading
+if args.topdown:
+    strat = "td"
+else:
+    strat = "bu"
+
+bu = load_data("data/{}_{}.csv".format(args.benchmark, strat))
+bus = load_data("data/{}_{}_old.csv".format(args.benchmark, strat))
 
 # set up some formatting
 rc={'axes.labelsize': 24, 'legend.fontsize': 16, 'axes.titlesize': 32, 'xtick.labelsize': 16, 'ytick.labelsize': 16}
