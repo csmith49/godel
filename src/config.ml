@@ -17,6 +17,7 @@ let dtree = ref Normal.DTree.empty;;
 let system = ref Normal.System.empty;;
 let normalize_time = ref 0.0;;
 let visualize_dtree = ref false;;
+let popl = ref false;;
 
 let to_process : (string list ref) = ref [];;
 let register (f : string) : unit =
@@ -60,7 +61,8 @@ let arg_list = [
     ("-stats", Arg.Set stats, " Enables detailed output stats.");
     ("-subset", Arg.Set_int subset, " Chooses a random subset of rules.");
     ("-dtree", Arg.Set use_dtree, " Enables Discrimination Tree normalization.");
-    ("-visualize", Arg.Set visualize_dtree, " Prints the generated Discrimination Tree.")
+    ("-visualize", Arg.Set visualize_dtree, " Prints the generated Discrimination Tree.");
+    ("-popl", Arg.Set popl, " Enables checking for POPL experiments");
 ];;
 
 let anon_fun = (fun s -> raise (Arg.Bad (s ^ " is not a recognized argument"))) in

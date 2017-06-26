@@ -31,7 +31,7 @@ bu = load_data("data/{}_{}.csv".format(args.benchmark, strat))
 bus = load_data("data/{}_{}_old.csv".format(args.benchmark, strat))
 
 # set up some formatting
-rc={'axes.labelsize': 24, 'legend.fontsize': 16, 'axes.titlesize': 32, 'xtick.labelsize': 16, 'ytick.labelsize': 16}
+rc={'axes.labelsize': 28, 'legend.fontsize': 24, 'axes.titlesize': 36, 'xtick.labelsize': 20, 'ytick.labelsize': 20}
 sns.set(style="white", rc=rc)
 
 # and plot the data

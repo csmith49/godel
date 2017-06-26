@@ -37,6 +37,15 @@ let noisy_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
         let ans = f p in
             if not ans then print_endline ("---> NORMALIZED: " ^ program_string p);
             ans
+let popl_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
+    fun p ->
+        let t = Sys.time () in
+        let ans = f p in
+        let size = string_of_int (program_size p) in
+        let result = string_of_bool ans in
+        let time = string_of_float ((Sys.time ()) -. t) in
+            print_endline ("POPL|" ^ size ^ "|" ^ result ^ "|" ^ time);
+            ans
 (* the different root normals we can use *)
 let dtree_rn (p : Program.t) : bool =
     not (Normal.DTree.match_program p !Config.dtree)
@@ -46,7 +55,8 @@ let system_rn (p : Program.t) : bool =
 let root_normal : (Program.t -> bool) =
     let rn = if !Config.use_dtree then dtree_rn else system_rn in
     let rnp = if !Config.stats then stats_wrapper rn else rn in
-    if !Config.noisy then noisy_wrapper rnp else rnp
+    let rnpp = if !Config.noisy then noisy_wrapper rnp else rnp in
+        if !Config.popl then popl_wrapper rnpp else rnpp
 (* and then repeat with normal *)
 let rec dtree_n (p : Program.t) : bool = match p with
     | Leaf x -> not (Normal.DTree.match_program p !Config.dtree)
@@ -59,7 +69,8 @@ let rec system_n (p : Program.t) : bool = match p with
 let normal : (Program.t -> bool) =
     let n = if !Config.use_dtree then dtree_n else system_n in
     let np = if !Config.stats then stats_wrapper n else n in
-    if !Config.noisy then noisy_wrapper np else np
+    let npp = if !Config.noisy then noisy_wrapper np else np in
+        if !Config.popl then popl_wrapper npp else npp
 
 (* used to short-circuit computation *)
 exception Success of Vector.t
