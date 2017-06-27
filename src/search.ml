@@ -24,39 +24,11 @@ module Frontier = Eval.PriorityQueue(TD)
 module ProgramTable = Hashtbl.Make(Program)
 let tbl : bool ProgramTable.t ref = ref (ProgramTable.create 139)
 
-(* useful wrappers *)
-let stats_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
-    fun p ->
-        let t = Sys.time () in
-        let ans = f p in begin
-            Config.normalize_time := !Config.normalize_time +. (Sys.time ()) -. t;
-            ans
-        end
-let noisy_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
-    fun p ->
-        let ans = f p in
-            if not ans then print_endline ("---> NORMALIZED: " ^ program_string p);
-            ans
-let popl_wrapper (f : Program.t -> bool) : (Program.t -> bool) =
-    fun p ->
-        let t = Sys.time () in
-        let ans = f p in
-        let size = string_of_int (program_size p) in
-        let result = string_of_bool ans in
-        let time = string_of_float ((Sys.time ()) -. t) in
-            print_endline ("POPL|" ^ size ^ "|" ^ result ^ "|" ^ time);
-            ans
 (* the different root normals we can use *)
 let dtree_rn (p : Program.t) : bool =
     not (Normal.DTree.match_program p !Config.dtree)
 let system_rn (p : Program.t) : bool =
     not (Normal.System.match_program p !Config.system)
-(* which we select early based on config *)
-let root_normal : (Program.t -> bool) =
-    let rn = if !Config.use_dtree then dtree_rn else system_rn in
-    let rnp = if !Config.stats then stats_wrapper rn else rn in
-    let rnpp = if !Config.noisy then noisy_wrapper rnp else rnp in
-        if !Config.popl then popl_wrapper rnpp else rnpp
 (* and then repeat with normal *)
 let rec dtree_n (p : Program.t) : bool = match p with
     | Leaf x -> not (Normal.DTree.match_program p !Config.dtree)
@@ -66,11 +38,48 @@ let rec system_n (p : Program.t) : bool = match p with
     | Leaf x -> not (Normal.System.match_program p !Config.system)
     | Node (f, ss) ->
         not (Normal.System.match_program p !Config.system) && (List.for_all system_n ss)
-let normal : (Program.t -> bool) =
-    let n = if !Config.use_dtree then dtree_n else system_n in
-    let np = if !Config.stats then stats_wrapper n else n in
-    let npp = if !Config.noisy then noisy_wrapper np else np in
-        if !Config.popl then popl_wrapper npp else npp
+(* all the fancy wrapping and whatnot goes here *)
+let make_normality
+    (dtree_norm : Program.t -> bool)
+    (system_norm : Program.t -> bool) :
+        (Program.t -> bool) = function p ->
+    (* everything wants timing info, might as well grab it right off the bat *)
+    let t = Sys.time () in
+    (* now do the actual evaluation *)
+    let answer = if !Config.use_dtree then dtree_norm p else system_norm p in
+    let time = (Sys.time ()) -. t in
+    (* stats flag first *)
+    let _ = if !Config.stats
+        then begin
+            Config.normalize_time := !Config.normalize_time +. time;
+            ()
+        end else () in
+    (* now noisy *)
+    let _ = if !Config.noisy && (not answer)
+        then begin
+            print_endline ("---> NORMALIZED: " ^ program_string p);
+            ()
+        end else () in
+    (* and popl *)
+    let _ = if !Config.popl
+        then
+            let size = string_of_int (program_size p) in
+            let result = string_of_bool answer in
+            let duration = Printf.sprintf "%.7f" time in
+                print_endline ("POPL," ^ size ^ "," ^ result ^ "," ^ duration)
+        else () in
+    (* and width *)
+    let answer = if !Config.width != 0
+        then let size = program_size p in begin
+            update_width size;
+            check_width size
+        end
+        else answer in
+    answer
+(* and now we can define the important bits *)
+let normal = make_normality dtree_n system_n
+let root_normal = make_normality dtree_rn system_rn
+
 
 (* used to short-circuit computation *)
 exception Success of Vector.t

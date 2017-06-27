@@ -18,11 +18,32 @@ let system = ref Normal.System.empty;;
 let normalize_time = ref 0.0;;
 let visualize_dtree = ref false;;
 let popl = ref false;;
+let width = ref 0;;
 
+(* we maintain some state for width computations *)
+module Counter = Map.Make(struct
+    type t = int
+    let compare = Pervasives.compare
+end);;
+let width_counter = ref Counter.empty;;
+let update_width (s : int) : unit = begin
+    let current =
+        try Counter.find s !width_counter
+        with _ -> 0
+    in width_counter := Counter.add s (current + 1) !width_counter; ()
+end;;
+let check_width (s : int) : bool =
+    let value =
+        try Counter.find s !width_counter
+        with _ -> 0
+    in value <= !width
+
+(* which files we'll add to our system *)
 let to_process : (string list ref) = ref [];;
 let register (f : string) : unit =
     to_process := f :: !to_process;;
 
+(* how to process a rule file *)
 let process_rules filename = begin
     print_string ("loading file: " ^ filename ^ "...");
     (* register kbo data *)
@@ -63,6 +84,7 @@ let arg_list = [
     ("-dtree", Arg.Set use_dtree, " Enables Discrimination Tree normalization.");
     ("-visualize", Arg.Set visualize_dtree, " Prints the generated Discrimination Tree.");
     ("-popl", Arg.Set popl, " Enables checking for POPL experiments");
+    ("-width", Arg.Set_int width, " Sets the width for enumeration")
 ];;
 
 let anon_fun = (fun s -> raise (Arg.Bad (s ^ " is not a recognized argument"))) in
