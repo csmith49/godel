@@ -1,4 +1,4 @@
-from subprocess import STDOUT, check_output, TimeoutExpired
+import subprocess
 from argparse import ArgumentParser
 import pandas as pd
 import sys
@@ -13,21 +13,12 @@ parser.add_argument("-t", "--timeout", default=600, type=int)
 args = parser.parse_args()
 
 # our basic command
-CMD = "cd ../..; ./godel.native -target {bm} -dense -dtree -popl -width {width} -strategy {strat} {kbo}"
+CMD = "cd ../..; ./godel.native -target {bm} -dense -dtree -popl -width {width} -strategy {strat} {kbo} -enumerate"
 
 # cleanly wrap a command execution with a timeout handler
-def run_command(cmd, seconds, noisy=False):
-    if noisy:
-        print("Running command:\n\t{}...".format(cmd))
-    try:
-         output = check_output(cmd, stderr=STDOUT, timeout=seconds, shell=True)
-         if noisy:
-             print("...command finished.")
-         return output.decode(sys.stdout.encoding)
-    except Exception as e:
-        if noisy:
-            print("...command failed.")
-        return e.output.decode(sys.stdout.encoding)
+def run_command(cmd):
+    output = subprocess.run(cmd, stdout=subprocess.PIPE, shell=True)
+    return output.stdout.decode(sys.stdout.encoding)
 
 # the experiments are pretty straightforward:
 # filter out the POPL output, convert to csv
@@ -40,7 +31,7 @@ def run_experiment(benchmark, strategy, kbo):
         width=args.width
     )
     output = []
-    raw_data = run_command(cmd, args.timeout, args.noisy)
+    raw_data = run_command(cmd)
     for line in raw_data.split("\n"):
         try:
             _, size, norm, time = line.split(",")
