@@ -2,16 +2,27 @@
 data = data
 # the script for making the data
 test = python3 generate_data.py --noisy
-# the benchmarks we're testing
-benchmarks = eq_add_5 eq_sum_to_first_and_second eq_str_split eq_ls_sum2
+# where to store the graphs
+graphs = graphs
+# script for making the graphs
+graph = python3 generate_graph.py
+
+# the benchmark we're testing
+benchmark = eq_sum_to_first_and_second
+bm_data = $(data)/$(benchmark).csv
 
 # the rules
 .phony: all
-all: $(foreach bm,$(benchmarks),$(data)/$(bm).csv)
+all: $(graphs)
+	$(graph) -d $(bm_data)
+
+# make the graphs folder if necessary
+$(graphs):
+	mkdir -p $(graphs)
 
 # how we get our csv data
 $(data)/%.csv: $(data)
-	$(test) --benchmark $* --output $@
+	$(test) --benchmark $* --output $@ --width 20
 
 # if we don't have a data folder, make it
 $(data):
