@@ -1,0 +1,5 @@
+norm_scaling/data/small.csv filter=lfs diff=lfs merge=lfs -text
+norm_scaling/data/eq_add_5.csv filter=lfs diff=lfs merge=lfs -text
+norm_scaling/data/eq_ls_sum2.csv filter=lfs diff=lfs merge=lfs -text
+norm_scaling/data/eq_str_split.csv filter=lfs diff=lfs merge=lfs -text
+norm_scaling/data/eq_sum_to_first_and_second.csv filter=lfs diff=lfs merge=lfs -text
