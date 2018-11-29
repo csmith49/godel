@@ -62,16 +62,43 @@ if __name__ == '__main__':
     # load in the data, split it up into howver many frames
     raw_data = load_data(args.data)
     data = get_frame(raw_data, args.topdown, args.kbo)
-    print(data)
 
-    # now we worry about graphing
-    rc={'font.size': 32, 'axes.labelsize': 24, 'legend.fontsize': 32.0, 'axes.titlesize': 32, 'xtick.labelsize': 16, 'ytick.labelsize': 16}
-    sns.set(style="white", rc=rc)
+    # context controls scaling, style controls color, etc.
+    sns.set(style="white")
+    sns.set_context("paper", font_scale=2.7)
+    sns.set_style("ticks")
+    # rc={'font.size': 32, 'axes.labelsize': 24, 'legend.fontsize': 32.0, 'axes.titlesize': 32, 'xtick.labelsize': 16, 'ytick.labelsize': 16, "xtick.direction": "in"}
+    # sns.set(style="white", rc=rc)
     # sns.set_color_codes("pastel")
+    
+    # now we worry about graphing
+
+    ticks =         [0,     0.2,    0.4,    0.6,    0.8,    1]
+    tick_labels =   [0,    " ",    " ",    " ",    " ",     1]
+    tick_params = {
+        "direction" : "in",
+        "length": 10,
+    }
+
+    # plot kde and marginals
     g = sns.JointGrid(x="reduction", y="overhead", data=data, xlim=(0,1), ylim=(0,1), space=0)
     g = g.plot_joint(sns.kdeplot, shade=True, shade_lowest=False,cmap="BuGn")
     g = g.plot_marginals(sns.kdeplot, shade=True, color="g")
-    g.ax_joint.set_xticks([0,0.2, 0.4, 0.6, 0.8, 1])
-    g.ax_joint.set_yticks([0,0.2, 0.4, 0.6, 0.8, 1])
 
-    sns.plt.savefig(args.output)
+    # set ticks on marginals - note they're backwards
+    g.ax_marg_x.tick_params(length=10, direction="out")
+    g.ax_marg_y.tick_params(length=10, direction="out")
+
+    # mess with ticks
+    g.ax_joint.set_xticks(ticks)
+    g.ax_joint.set_xticklabels(tick_labels)
+    g.ax_joint.set_yticks(ticks)
+    g.ax_joint.set_yticklabels(tick_labels)
+    g.ax_joint.tick_params(**tick_params)
+
+    # edit labels
+    padding = -10
+    g.ax_joint.set_xlabel("Reduction", labelpad=padding)
+    g.ax_joint.set_ylabel("Overhead", labelpad=padding)
+
+    g.savefig(args.output)

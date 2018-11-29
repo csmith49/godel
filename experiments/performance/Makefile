@@ -29,10 +29,10 @@ graphs:
 
 .phony: graphing
 graphing: graphs generate_sp.py
-	python3 generate_sp.py $(data) -o graphs/bun.png
-	python3 generate_sp.py $(data) -o graphs/bunk.png -k
-	python3 generate_sp.py $(data) -o graphs/tdn.png -t
-	python3 generate_sp.py $(data) -o graphs/tdnk.png -t -k
+	python3 generate_sp.py $(data) -o graphs/bun.pdf
+	python3 generate_sp.py $(data) -o graphs/bunk.pdf -k
+	python3 generate_sp.py $(data) -o graphs/tdn.pdf -t
+	python3 generate_sp.py $(data) -o graphs/tdnk.pdf -t -k
 
 .phony: clean
 clean:
