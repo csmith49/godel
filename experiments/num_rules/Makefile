@@ -1,4 +1,4 @@
-benchmarks = eq_str_len eq_add_and_mult
+benchmarks = eq_str_len
 graph_files = $(foreach bm, $(benchmarks), graphs/$(bm).png) $(foreach bm, $(benchmarks), graphs/$(bm)_td.png)
 rules_list = avg base bool int_compare int_extended int list string tuple
 rules_dir = ../../rules
@@ -6,7 +6,7 @@ rules_files = $(foreach r, $(rules_list), $(rules_dir)/$(r).scm)
 cap = 150
 
 .phony: all
-all: data $(foreach bm, $(benchmarks), data/$(bm)_bu.csv data/$(bm)_bu_old.csv data/$(bm)_td.csv data/$(bm)_td_old.csv)
+all: $(foreach bm, $(benchmarks), graphs/$(bm)_bu.pdf graphs/$(bm)_td.pdf)
 
 data:
 	mkdir -p data
@@ -25,10 +25,13 @@ data/%_td_old.csv:
 
 
 # from every piece of data we get, it's easy enough to make a graph
-graphs/%.png: data/%.csv ../csv_to_graph.py
-	python3 ../csv_to_graph.py $< -o $@ --transpose -x "Number of rules" -y "Time (seconds)" -t "$*"
+graphs/%_bu.pdf: data/%_bu.csv data/%_bu_old.csv
+	python3 generate_graph.py -b $* -o $@
+
+graphs/%_td.pdf: data/%_td.csv data/%_td_old.csv
+	python3 generate_graph.py -b $* -o $@ -t
 
 # but we don't want to make it easy to remove the data
 .phony: clean
 clean:
-	rm -rf graphs/*.png
+	rm -rf graphs/*.pdf
