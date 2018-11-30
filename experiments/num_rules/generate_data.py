@@ -42,7 +42,6 @@ def get_time(output, default):
 # repeatedly run experiment to get a single data frame
 def get_frame(size):
     timeout = 300
-    output = []
     if args.verbose:
         print("Computing frame: {}".format(size))
     for i in range(args.iterations):
@@ -50,16 +49,18 @@ def get_frame(size):
         time_output = get_time(raw_output, timeout)
         if args.verbose:
             print("--> {}".format(time_output))
-        output.append(time_output)
-    return output
+        yield time_output
 
 # now get and save all the data
-data = []
-for size in range(1, args.maxsize, 5):
-    data.append(get_frame(size))
+def data():
+    for size in range(1, args.maxsize, 5):
+        for time in get_frame(size):
+            yield size, time
 
 # write the frames out to file
-with open(args.output, "w") as f:
-    writer = csv.writer(f, delimiter="\t")
-    for row in data:
-        writer.writerow(row)
+with open(args.output, "w", newline='') as f:
+    fields = ['rules', 'time']
+    writer = csv.DictWriter(f, fieldnames=fields)
+    writer.writeheader()
+    for size, time in data():
+        writer.writerow({"rules": size, "time": time})
